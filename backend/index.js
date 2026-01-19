@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import prisma from './DB/db.confog.js';
 import userRoute from "./route/userroute.js";
 import blogRoute from "./route/blogroute.js";
-
+import cookieParser from 'cookie-parser';
 dotenv.config();
 
 const app = express();
@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
-
+app.use(cookieParser());
 // Routes
 app.use("/api/user", userRoute);
 app.use("/api/blog", blogRoute);

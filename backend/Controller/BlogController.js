@@ -1,16 +1,20 @@
 import prisma from "../DB/db.confog.js"
 
 const createBlog = async (req, res) => {
-    const { title, content, user_id } = req.body;
+    const { title, content } = req.body;
+    const user = req.user;
+
+    console.log(user);
     try {
-        if (!title || !content || !user_id) {
+        if (!title || !content) {
             return res.status(400).json({ message: "All fields are required" })
         }
         const newBlog = await prisma.blog.create({
             data: {
                 title: title,
                 content: content,
-                user_id: user_id
+                user_id: user.id
+
             }
         })
         return res.status(201).json({ message: "Blog created successfully", blog: newBlog })
@@ -28,7 +32,7 @@ const getBlogs = async (req, res) => {
         return res.status(500).json({ message: "Internal server error" })
     }
 }
-const getBlog = async (req, res) => {
+const getsingleBlog = async (req, res) => {
     const { id } = req.params;
     try {
         const blog = await prisma.blog.findUnique({
@@ -81,4 +85,4 @@ const deleteBlog = async (req, res) => {
         return res.status(500).json({ message: "Internal server error" })
     }
 }
-export { createBlog, getBlogs, getBlog, updateBlog, deleteBlog }    
+export { createBlog, getBlogs, getsingleBlog, updateBlog, deleteBlog }    

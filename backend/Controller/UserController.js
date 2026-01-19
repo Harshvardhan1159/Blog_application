@@ -1,4 +1,6 @@
 import prisma from "../DB/db.confog.js"
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 const registerUser = async (req, res) => {
     const { username, email, password } = req.body;
@@ -20,7 +22,7 @@ const registerUser = async (req, res) => {
             data: {
                 username: username,
                 email: email,
-                password_hash: password
+                password_hash: bcrypt.hashSync(password, 10)
             }
         })
         return res.status(201).json({ message: "User created successfully", user: newuser })
@@ -43,9 +45,24 @@ const loginUser = async (req, res) => {
         if (!user) {
             return res.status(400).json({ message: "User not found" })
         }
-        if (user.password_hash !== password) {
-            return res.status(400).json({ message: "Invalid password" })
+        if (!bcrypt.compareSync(password, user.password_hash)) {
+            return res.status(401).json({ message: "Invalid password" })
         }
+        const token = jwt.sign(
+            {
+                id: user.id,
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "7d"
+            }
+        )
+        res.cookie("token", token, {
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            httpOnly: true,
+            secure: true,
+            sameSite: "strict"
+        });
         return res.status(200).json({ message: "User logged in successfully", user: user })
     } catch (error) {
         console.log(error)
