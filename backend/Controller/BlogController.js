@@ -53,7 +53,7 @@ const updateBlog = async (req, res) => {
     const { id } = req.params;
     const { title, content } = req.body;
     try {
-        if (!title || !content) {
+        if (!title && !content) {
             return res.status(400).json({ message: "All fields are required" })
         }
         const updatedBlog = await prisma.blog.update({
