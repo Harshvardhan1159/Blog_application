@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import prisma from './DB/db.confog.js';
 import userRoute from "./route/userroute.js";
 import blogRoute from "./route/blogroute.js";
@@ -10,6 +11,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+// CORS - Allow frontend to communicate with backend
+app.use(cors({
+    origin: 'http://localhost:5173', // Vite dev server
+    credentials: true // Allow cookies
+}));
 app.use(express.json());
 app.use(cookieParser());
 // Routes

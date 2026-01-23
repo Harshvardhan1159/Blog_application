@@ -4,19 +4,37 @@ import bcrypt from "bcrypt";
 
 const registerUser = async (req, res) => {
     const { username, email, password } = req.body;
-
+    console.log(req.body)
     try {
 
         if (!username || !email || !password) {
-            return res.status(400).json({ message: "All fields are required" })
+            return res.status(400).json({ success: false, message: "All fields are required" })
         }
-        const user = await prisma.user.findUnique({
+
+        // Check if username OR email already exists
+        const existingUser = await prisma.user.findFirst({
             where: {
-                email: email
+                OR: [
+                    { username: username },
+                    { email: email }
+                ]
             }
         })
-        if (user) {
-            return res.status(400).json({ message: "User already exists" })
+
+        if (existingUser) {
+            // Provide specific error messages
+            if (existingUser.username === username) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Username already taken. Please choose another one."
+                })
+            }
+            if (existingUser.email === email) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Email already registered. Try logging in instead."
+                })
+            }
         }
         const newuser = await prisma.user.create({
             data: {
@@ -25,17 +43,38 @@ const registerUser = async (req, res) => {
                 password_hash: bcrypt.hashSync(password, 10)
             }
         })
-        return res.status(201).json({ message: "User created successfully", user: newuser })
+        return res.status(201).json({
+            success: true,
+            message: "User created successfully",
+            user: { id: newuser.id, username: newuser.username, email: newuser.email }
+        })
     } catch (error) {
         console.log(error)
-        return res.status(500).json({ message: "Internal server error" })
+
+        // Handle Prisma unique constraint errors (P2002)
+        if (error.code === 'P2002') {
+            const field = error.meta?.target?.[0] || 'field';
+            return res.status(400).json({
+                success: false,
+                message: `This ${field} is already taken. Please use a different one.`
+            })
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        })
     }
 }
 const loginUser = async (req, res) => {
     const { email, password } = req.body;
+    console.log(req.body)
     try {
         if (!email || !password) {
-            return res.status(400).json({ message: "All fields are required" })
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required"
+            })
         }
         const user = await prisma.user.findUnique({
             where: {
@@ -43,10 +82,16 @@ const loginUser = async (req, res) => {
             }
         })
         if (!user) {
-            return res.status(400).json({ message: "User not found" })
+            return res.status(400).json({
+                success: false,
+                message: "User not found. Please check your email or sign up."
+            })
         }
         if (!bcrypt.compareSync(password, user.password_hash)) {
-            return res.status(401).json({ message: "Invalid password" })
+            return res.status(401).json({
+                success: false,
+                message: "Invalid password. Please try again."
+            })
         }
         const token = jwt.sign(
             {
@@ -63,10 +108,17 @@ const loginUser = async (req, res) => {
             secure: true,
             sameSite: "strict"
         });
-        return res.status(200).json({ message: "User logged in successfully", user: user })
+        return res.status(200).json({
+            success: true,  // ✅ Added this!
+            message: "User logged in successfully",
+            user: { id: user.id, username: user.username, email: user.email }
+        })
     } catch (error) {
         console.log(error)
-        return res.status(500).json({ message: "Internal server error" })
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        })
     }
 }
 
